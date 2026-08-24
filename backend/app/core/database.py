@@ -4,12 +4,6 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import settings
 
-
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-)
-
 # backend/
 BASE_DIR = Path(__file__).resolve().parents[2]
 

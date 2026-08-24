@@ -9,9 +9,9 @@ from app.api.routes.auth import router as auth_router
 from app.core.config import settings
 
 app = FastAPI(
-    title="HealthScan API",
+    title=settings.app_name,
     description="AI-powered Health Appointment Manager",
-    version="0.1.0",
+    version=settings.app_version,
 )
 
 app.add_middleware(
