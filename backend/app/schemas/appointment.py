@@ -55,3 +55,19 @@ class AdminAppointmentUpdateRequest(BaseModel):
         default=None,
         max_length=255,
     )
+
+
+class PatientAppointmentResponse(BaseModel):
+    id: int
+    doctor_id: int
+    doctor_name: str
+    doctor_specialization: str
+    appointment_date: date
+    start_time: time
+    end_time: time
+    status: AppointmentStatus
+    cancellation_reason: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

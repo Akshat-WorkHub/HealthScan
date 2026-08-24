@@ -1,9 +1,8 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import { useAuth } from "../../../context/AuthContext"
+import { registerUser } from "../../../services/api"
 
 function PatientRegister() {
-  const { register } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState("")
@@ -32,15 +31,15 @@ function PatientRegister() {
     setLoading(true)
 
     try {
-      await register({
+      await registerUser({
         email,
         password,
         role: "PATIENT",
       })
 
       navigate("/patient/login")
-    } catch (error) {
-      setError(error.message)
+    } catch (err) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }

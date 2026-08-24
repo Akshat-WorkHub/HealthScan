@@ -37,6 +37,145 @@ router = APIRouter(
     tags=["Doctors"],
 )
 
+
+# ============================================================
+# PUBLIC (PATIENT) — LIST ALL ACTIVE DOCTORS
+# ============================================================
+
+@router.get(
+    "/public",
+    response_model=list[DoctorResponse],
+    status_code=status.HTTP_200_OK,
+)
+def list_active_doctors(
+    current_user: User = Depends(
+        require_role(UserRole.PATIENT)
+    ),
+    db: Session = Depends(get_db),
+):
+    """Return all active doctors that patients can book appointments with."""
+    from app.models.user import User as UserModel
+    doctors = db.scalars(
+        select(Doctor)
+        .join(UserModel, Doctor.user_id == UserModel.id)
+        .where(UserModel.is_active == True)
+        .order_by(Doctor.last_name, Doctor.first_name)
+    ).all()
+
+    return [
+        DoctorResponse(
+            id=doctor.id,
+            user_id=doctor.user_id,
+            first_name=doctor.first_name,
+            last_name=doctor.last_name,
+            specialization=doctor.specialization,
+            qualification=doctor.qualification,
+            experience_years=doctor.experience_years,
+            slot_duration_minutes=doctor.slot_duration_minutes,
+            created_at=doctor.created_at,
+            updated_at=doctor.updated_at,
+            is_active=doctor.user.is_active,
+        )
+        for doctor in doctors
+    ]
+
+
+# ============================================================
+# PUBLIC (PATIENT) — GET AVAILABLE SLOTS FOR A DOCTOR ON A DATE
+# ============================================================
+
+@router.get(
+    "/public/{doctor_id}/slots",
+    status_code=status.HTTP_200_OK,
+)
+def get_doctor_slots(
+    doctor_id: int,
+    date: str,  # expected format: YYYY-MM-DD
+    current_user: User = Depends(
+        require_role(UserRole.PATIENT)
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate available time slots for a doctor on a given date.
+    Slots are based on doctor working hours and exclude already-booked slots.
+    """
+    from datetime import date as date_type, timedelta, time as time_type
+    from app.models.appointment import Appointment, AppointmentStatus
+    from app.models.doctor_working_hours import DoctorWorkingHours
+
+    # Parse date
+    try:
+        appointment_date = date_type.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid date format. Use YYYY-MM-DD",
+        )
+
+    # Reject past dates
+    if appointment_date < date_type.today():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot book appointments in the past",
+        )
+
+    doctor = db.scalar(
+        select(Doctor).where(Doctor.id == doctor_id)
+    )
+
+    if not doctor or not doctor.user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doctor not found or inactive",
+        )
+
+    # day_of_week: Monday=0 ... Sunday=6
+    day_of_week = appointment_date.weekday()
+
+    working_hours = db.scalar(
+        select(DoctorWorkingHours).where(
+            DoctorWorkingHours.doctor_id == doctor_id,
+            DoctorWorkingHours.day_of_week == day_of_week,
+        )
+    )
+
+    if not working_hours:
+        return {"slots": [], "message": "Doctor does not work on this day"}
+
+    # Get already booked start_times on this date
+    booked_times = set(
+        row.start_time
+        for row in db.scalars(
+            select(Appointment).where(
+                Appointment.doctor_id == doctor_id,
+                Appointment.appointment_date == appointment_date,
+                Appointment.status == AppointmentStatus.SCHEDULED,
+            )
+        ).all()
+    )
+
+    # Generate slots
+    from datetime import datetime, timedelta
+    slot_minutes = doctor.slot_duration_minutes
+    slots = []
+
+    current = datetime.combine(appointment_date, working_hours.start_time)
+    end = datetime.combine(appointment_date, working_hours.end_time)
+
+    while current + timedelta(minutes=slot_minutes) <= end:
+        slot_start = current.time()
+        slot_end = (current + timedelta(minutes=slot_minutes)).time()
+        slots.append({
+            "start_time": slot_start.strftime("%H:%M"),
+            "end_time": slot_end.strftime("%H:%M"),
+            "available": slot_start not in booked_times,
+        })
+        current += timedelta(minutes=slot_minutes)
+
+    return {"slots": slots}
+
+
 @router.get(
     "/me",
     response_model=DoctorResponse,

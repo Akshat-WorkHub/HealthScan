@@ -421,3 +421,91 @@ export async function changePassword(
     body: JSON.stringify(passwordData),
   })
 }
+
+
+// ============================================================
+// PATIENT — PROFILE & APPOINTMENTS
+// ============================================================
+
+export async function getMyPatientProfile(token) {
+  return request("/patients/me", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+
+export async function createMyPatientProfile(token, patientData) {
+  return request("/patients/me", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(patientData),
+  })
+}
+
+
+export async function updateMyPatientProfile(token, patientData) {
+  return request("/patients/me", {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(patientData),
+  })
+}
+
+
+export async function getMyPatientAppointments(token) {
+  return request("/appointments/me", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+
+export async function bookAppointment(token, appointmentData) {
+  return request("/appointments/me", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(appointmentData),
+  })
+}
+
+
+export async function cancelAppointment(token, appointmentId) {
+  return request(`/appointments/me/${appointmentId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+
+export async function getActiveDoctors(token) {
+  return request("/doctors/public", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+
+export async function getDoctorSlots(token, doctorId, date) {
+  return request(`/doctors/public/${doctorId}/slots?date=${date}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+

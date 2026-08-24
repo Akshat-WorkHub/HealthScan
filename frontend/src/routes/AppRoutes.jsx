@@ -5,6 +5,7 @@ import Home from "../pages/auth/Home"
 import PatientDashboard from "../pages/patient/dashboard/PatientDashboard"
 import PatientRegister from "../pages/patient/register/PatientRegister"
 import PatientLogin from "../pages/patient/login/PatientLogin"
+import BookAppointment from "../pages/patient/book-appointment/BookAppointment"
 
 import DoctorDashboard from "../pages/doctor/dashboard/DoctorDashboard"
 import DoctorLogin from "../pages/doctor/login/DoctorLogin"
@@ -181,6 +182,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <RoleRoute allowedRoles={["DOCTOR"]}>
               <DoctorProfile />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patient/book-appointment"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["PATIENT"]}>
+              <BookAppointment />
             </RoleRoute>
           </ProtectedRoute>
         }
