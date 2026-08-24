@@ -8,8 +8,6 @@ from app.core.security import decode_access_token
 from app.models.user import User
 from app.schemas.auth import UserRole
 
-
-
 security = HTTPBearer()
 
 

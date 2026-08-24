@@ -29,3 +29,10 @@ class UserResponse(BaseModel):
     email: EmailStr
     role: UserRole
     is_active: bool
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+    )

@@ -41,5 +41,13 @@ class DoctorLeaveResponse(BaseModel):
     start_date: date
     end_date: date
     reason: str | None
+    status : str
     created_at: datetime
     updated_at: datetime
+
+
+class AdminDoctorLeaveCreateRequest(BaseModel):
+    doctor_id: int
+    start_date: date
+    end_date: date
+    reason: str | None = None

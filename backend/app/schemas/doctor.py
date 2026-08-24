@@ -1,6 +1,5 @@
 from datetime import datetime
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class DoctorCreateRequest(BaseModel):
@@ -54,3 +53,79 @@ class DoctorResponse(BaseModel):
     slot_duration_minutes: int
     created_at: datetime
     updated_at: datetime
+    is_active: bool
+
+
+class AdminDoctorCreateRequest(BaseModel):
+
+    email: EmailStr
+
+    password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
+
+    first_name: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+
+    last_name: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+
+    specialization: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    qualification: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+    experience_years: int = Field(
+        ge=0,
+    )
+
+    slot_duration_minutes: int = Field(
+        gt=0,
+    )
+
+
+class AdminDoctorUpdateRequest(BaseModel):
+
+    first_name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+    )
+
+    last_name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+    )
+
+    specialization: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=150,
+    )
+
+    qualification: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255,
+    )
+
+    experience_years: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    slot_duration_minutes: int | None = Field(
+        default=None,
+        gt=0,
+    )
