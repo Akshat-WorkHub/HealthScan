@@ -1,5 +1,53 @@
 # HealthScan --- Healthcare Appointment Management System
 
+## Basic Steps to Run the Website
+
+### 1. Open the Website
+
+Visit the deployed HealthScan application:
+
+https://healthscan-frontend.vercel.app/
+
+### 2. Administrator Login
+
+To access the administrator dashboard:
+
+- **Email:** `admin@healthscan.ai`
+- **Password:** `Admin123`
+
+Navigate to the **Admin Sign In** page and enter the above credentials.
+
+### 3. Explore the Application
+
+After logging in, you can explore the available HealthScan features based on
+the assigned user role, including:
+
+- Patient management
+- Doctor management
+- Appointment management
+- Doctor working hours
+- Doctor leave management
+- Appointment booking and cancellation
+
+### 4. Patient Registration
+
+New patients can create an account using the **Patient Registration** option
+and then log in to access patient features.
+
+### 5. Doctor Access
+
+Doctor accounts can be used to manage:
+
+- Professional profile
+- Working hours
+- Leave requests
+- Appointment-related functionality
+
+> **Note:** The deployed application requires an active internet connection
+> to communicate with the hosted frontend and backend services.
+
+
+
 ## 1. Project Overview
 
 **HealthScan** is a web-based Healthcare Appointment Management System
