@@ -46,7 +46,7 @@ function PatientRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="portal-shell portal-patient min-h-screen">
 
       {/* Navbar */}
       <header className="border-b border-slate-200 bg-white">

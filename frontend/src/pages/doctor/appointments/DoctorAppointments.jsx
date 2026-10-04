@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import DoctorLayout from "../DoctorLayout"
 import { getMyDoctorAppointments } from "../../../services/api"
 
@@ -62,12 +62,34 @@ function DoctorAppointments() {
                     <tr><th className="px-6 py-3">Patient</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Time</th><th className="px-6 py-3">Status</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {appointments.map((appointment) => <tr key={appointment.id}>
-                      <td className="px-6 py-4 font-medium text-slate-900">{appointment.patient_name?.trim() || "Patient"}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-slate-700">{formatDate(appointment.appointment_date)}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-slate-700">{formatTime(appointment.start_time)} – {formatTime(appointment.end_time)}</td>
-                      <td className="px-6 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${appointment.status === "SCHEDULED" ? "bg-blue-50 text-blue-700" : appointment.status === "COMPLETED" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{appointment.status}</span></td>
-                    </tr>)}
+                    {appointments.map((appointment) => {
+                      const information = appointment.pre_visit_information
+                      const summary = information?.summary
+                      return <Fragment key={appointment.id}>
+                        <tr>
+                          <td className="px-6 py-4 font-medium text-slate-900">{appointment.patient_name?.trim() || "Patient"}</td>
+                          <td className="whitespace-nowrap px-6 py-4 text-slate-700">{formatDate(appointment.appointment_date)}</td>
+                          <td className="whitespace-nowrap px-6 py-4 text-slate-700">{formatTime(appointment.start_time)} – {formatTime(appointment.end_time)}</td>
+                          <td className="px-6 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${appointment.status === "SCHEDULED" ? "bg-blue-50 text-blue-700" : appointment.status === "COMPLETED" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{appointment.status}</span></td>
+                        </tr>
+                        <tr className="border-b border-slate-100">
+                          <td colSpan={4} className="px-6 pb-4">
+                            <details>
+                              <summary className="cursor-pointer text-sm font-semibold text-blue-700">Pre-Visit AI Summary</summary>
+                              {!summary ? <p className="mt-2 text-sm text-slate-500">No pre-visit AI summary available.</p> : <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4">
+                                {information?.symptoms && <p className="text-sm"><span className="font-semibold">Patient-reported symptoms:</span> {information.symptoms}</p>}
+                                {information?.additional_notes && <p className="mt-2 text-sm"><span className="font-semibold">Patient-reported notes:</span> {information.additional_notes}</p>}
+                                <p className="mt-3 text-sm"><span className="font-semibold">Urgency:</span> {summary.urgency_level}</p>
+                                <p className="mt-2 text-sm"><span className="font-semibold">Chief complaint:</span> {summary.chief_complaint}</p>
+                                <p className="mt-3 text-sm font-semibold">Suggested questions</p>
+                                <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-slate-700">{(Array.isArray(summary.suggested_questions) ? summary.suggested_questions : []).map((question, index) => <li key={index}>{question}</li>)}</ol>
+                                <p className="mt-3 text-xs text-slate-500">AI-generated preliminary summary. Not a medical diagnosis.</p>
+                              </div>}
+                            </details>
+                          </td>
+                        </tr>
+                      </Fragment>
+                    })}
                   </tbody>
                 </table>
               </div>}

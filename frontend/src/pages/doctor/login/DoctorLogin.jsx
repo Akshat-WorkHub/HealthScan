@@ -55,7 +55,7 @@ function DoctorLogin() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="portal-shell portal-doctor min-h-screen">
 
       {/* ======================================================
           HEADER

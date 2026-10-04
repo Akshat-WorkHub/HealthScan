@@ -3,6 +3,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.appointment import AppointmentStatus
+from app.schemas.pre_visit import PreVisitInformationResponse
 
 
 class AppointmentCreateRequest(BaseModel):
@@ -84,5 +85,6 @@ class DoctorAppointmentResponse(BaseModel):
     cancellation_reason: str | None
     created_at: datetime
     updated_at: datetime
+    pre_visit_information: PreVisitInformationResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)

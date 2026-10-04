@@ -3,6 +3,8 @@ import { Navigate, Routes, Route } from "react-router-dom"
 import Home from "../pages/auth/Home"
 
 import PatientDashboard from "../pages/patient/dashboard/PatientDashboard"
+import PatientAppointments from "../pages/patient/appointments/PatientAppointments"
+import PatientProfile from "../pages/patient/profile/PatientProfile"
 import PatientRegister from "../pages/patient/register/PatientRegister"
 import PatientLogin from "../pages/patient/login/PatientLogin"
 import BookAppointment from "../pages/patient/book-appointment/BookAppointment"
@@ -47,6 +49,28 @@ function AppRoutes() {
           <ProtectedRoute>
             <RoleRoute allowedRoles={["PATIENT"]}>
               <PatientDashboard />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patient/appointments"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["PATIENT"]}>
+              <PatientAppointments />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patient/profile"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["PATIENT"]}>
+              <PatientProfile />
             </RoleRoute>
           </ProtectedRoute>
         }
