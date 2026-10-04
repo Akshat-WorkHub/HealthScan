@@ -56,7 +56,7 @@ function PatientRegister() {
             to="/"
             className="text-xl font-bold tracking-tight text-slate-900"
           >
-            SmartHealth<span className="text-blue-600"> AI</span>
+            HealthScan<span className="text-blue-600"> AI</span>
           </Link>
 
           <div className="flex items-center gap-4">

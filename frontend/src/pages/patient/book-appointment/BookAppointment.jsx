@@ -10,7 +10,8 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────
 function todayString() {
-  return new Date().toISOString().split("T")[0]
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 }
 
 function formatTime(t) {
@@ -354,7 +355,7 @@ function BookAppointment() {
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                {slots.map((slot) => {
+                {slots.filter((slot) => slot.available).map((slot) => {
                   const isSelected =
                     selectedSlot?.start_time === slot.start_time
                   return (

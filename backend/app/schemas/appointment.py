@@ -70,4 +70,19 @@ class PatientAppointmentResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DoctorAppointmentResponse(BaseModel):
+    id: int
+    patient_id: int
+    patient_name: str
+    appointment_date: date
+    start_time: time
+    end_time: time
+    status: AppointmentStatus
+    cancellation_reason: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

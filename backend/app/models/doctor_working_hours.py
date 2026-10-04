@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, time
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, SmallInteger, Time, Index
+from sqlalchemy import BigInteger, DateTime, ForeignKey, SmallInteger, Time, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -62,3 +62,5 @@ class DoctorWorkingHours(Base):
         "Doctor",
         back_populates="working_hours",
     )
+
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

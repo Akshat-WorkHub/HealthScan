@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import date as date_type, datetime, timedelta, time as time_type
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -23,6 +24,7 @@ from app.schemas.doctor_working_hours import (
     DoctorWorkingHoursCreateRequest,
     DoctorWorkingHoursResponse,
     DoctorWorkingHoursUpdateRequest,
+    WeeklyScheduleRequest,
 )
 from app.schemas.doctor_leave import (
     DoctorLeaveCreateRequest,
@@ -100,9 +102,7 @@ def get_doctor_slots(
     Generate available time slots for a doctor on a given date.
     Slots are based on doctor working hours and exclude already-booked slots.
     """
-    from datetime import date as date_type, timedelta, time as time_type
     from app.models.appointment import Appointment, AppointmentStatus
-    from app.models.doctor_working_hours import DoctorWorkingHours
 
     # Parse date
     try:
@@ -130,23 +130,32 @@ def get_doctor_slots(
             detail="Doctor not found or inactive",
         )
 
+    leave = db.scalar(select(DoctorLeave).where(
+        DoctorLeave.doctor_id == doctor_id,
+        DoctorLeave.start_date <= appointment_date,
+        DoctorLeave.end_date >= appointment_date,
+        DoctorLeave.status == "APPROVED",
+    ))
+    if leave:
+        return {"slots": [], "message": "Doctor is on leave"}
+
     # day_of_week: Monday=0 ... Sunday=6
     day_of_week = appointment_date.weekday()
 
-    working_hours = db.scalar(
+    working_hours = db.scalars(
         select(DoctorWorkingHours).where(
             DoctorWorkingHours.doctor_id == doctor_id,
             DoctorWorkingHours.day_of_week == day_of_week,
-        )
-    )
+            DoctorWorkingHours.is_active.is_(True),
+        ).order_by(DoctorWorkingHours.start_time)
+    ).all()
 
     if not working_hours:
         return {"slots": [], "message": "Doctor does not work on this day"}
 
-    # Get already booked start_times on this date
-    booked_times = set(
-        row.start_time
-        for row in db.scalars(
+    # Include overlapping appointments, not only identical start times.
+    booked = list(
+        db.scalars(
             select(Appointment).where(
                 Appointment.doctor_id == doctor_id,
                 Appointment.appointment_date == appointment_date,
@@ -156,22 +165,37 @@ def get_doctor_slots(
     )
 
     # Generate slots
-    from datetime import datetime, timedelta
     slot_minutes = doctor.slot_duration_minutes
     slots = []
 
-    current = datetime.combine(appointment_date, working_hours.start_time)
-    end = datetime.combine(appointment_date, working_hours.end_time)
+    lunch_start = datetime.combine(appointment_date, time_type(12, 30))
+    lunch_end = datetime.combine(appointment_date, time_type(14, 0))
+    now = datetime.now()
+    generated = set()
+    for interval in working_hours:
+        current = datetime.combine(appointment_date, interval.start_time)
+        end = datetime.combine(appointment_date, interval.end_time)
+        while current + timedelta(minutes=slot_minutes) <= end:
+            slot_end_at = current + timedelta(minutes=slot_minutes)
+            if current < lunch_end and slot_end_at > lunch_start:
+                current = max(current, lunch_end)
+                continue
+            slot_start = current.time()
+            slot_end = slot_end_at.time()
+            is_booked = any(
+                slot_start < appointment.end_time
+                and slot_end > appointment.start_time
+                for appointment in booked
+            )
+            is_past = appointment_date == now.date() and current <= now
+            if not is_booked and not is_past:
+                generated.add((slot_start, slot_end))
+            current = slot_end_at
 
-    while current + timedelta(minutes=slot_minutes) <= end:
-        slot_start = current.time()
-        slot_end = (current + timedelta(minutes=slot_minutes)).time()
-        slots.append({
-            "start_time": slot_start.strftime("%H:%M"),
-            "end_time": slot_end.strftime("%H:%M"),
-            "available": slot_start not in booked_times,
-        })
-        current += timedelta(minutes=slot_minutes)
+    slots = [
+        {"start_time": start.strftime("%H:%M"), "end_time": end.strftime("%H:%M"), "available": True}
+        for start, end in sorted(generated)
+    ]
 
     return {"slots": slots}
 
@@ -337,6 +361,45 @@ def get_my_working_hours(
 
     return working_hours
 
+
+@router.put(
+    "/me/working-hours/schedule",
+    response_model=list[DoctorWorkingHoursResponse],
+    status_code=status.HTTP_200_OK,
+)
+def replace_my_working_schedule(
+    schedule: WeeklyScheduleRequest,
+    current_user: User = Depends(require_role(UserRole.DOCTOR)),
+    db: Session = Depends(get_db),
+):
+    doctor = db.scalar(select(Doctor).where(Doctor.user_id == current_user.id))
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+
+    existing = db.scalars(select(DoctorWorkingHours).where(
+        DoctorWorkingHours.doctor_id == doctor.id
+    )).all()
+    for row in existing:
+        db.delete(row)
+    db.flush()
+
+    rows = [
+        DoctorWorkingHours(
+            doctor_id=doctor.id,
+            day_of_week=day.day_of_week,
+            start_time=interval.start_time,
+            end_time=interval.end_time,
+            is_active=True,
+        )
+        for day in schedule.days
+        for interval in day.intervals
+    ]
+    db.add_all(rows)
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+    return rows
+
 @router.put(
     "/me/working-hours/{day_of_week}",
     response_model=DoctorWorkingHoursResponse,
@@ -381,8 +444,13 @@ def update_working_hours(
             detail="Working hours not found for this day",
         )
 
-    working_hours.start_time = working_hours_data.start_time
-    working_hours.end_time = working_hours_data.end_time
+    new_start = working_hours_data.start_time or working_hours.start_time
+    new_end = working_hours_data.end_time or working_hours.end_time
+    if new_start >= new_end:
+        raise HTTPException(status_code=422, detail="start_time must be before end_time")
+
+    for field, value in working_hours_data.model_dump(exclude_unset=True).items():
+        setattr(working_hours, field, value)
 
     db.commit()
     db.refresh(working_hours)

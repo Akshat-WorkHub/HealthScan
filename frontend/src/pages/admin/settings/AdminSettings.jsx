@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
 import { useAuth } from "../../../context/AuthContext"
+import { changePassword } from "../../../services/api"
 
 
 function AdminSettings() {
@@ -30,7 +31,7 @@ function AdminSettings() {
   // PASSWORD FORM
   // ============================================================
 
-  function handlePasswordSubmit(event) {
+  async function handlePasswordSubmit(event) {
     event.preventDefault()
 
     setError("")
@@ -55,26 +56,21 @@ function AdminSettings() {
       setError("New password and confirmation password do not match.")
       return
     }
-
-    /*
-      Password-change API is not currently available in the
-      existing backend API.
-
-      Do not pretend the password was changed.
-
-      We keep the form and validation ready for the backend
-      password-change endpoint to be added.
-    */
-
     setChangingPassword(true)
-
-    setTimeout(() => {
+    try {
+      await changePassword(localStorage.getItem("access_token"), {
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setSuccess("Your password has been changed.")
+    } catch (err) {
+      setError(err.message || "Failed to change password.")
+    } finally {
       setChangingPassword(false)
-
-      setError(
-        "Password change is not available yet. The backend password-change endpoint has not been implemented."
-      )
-    }, 300)
+    }
   }
 
 

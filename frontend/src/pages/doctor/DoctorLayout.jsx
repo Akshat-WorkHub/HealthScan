@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
+import DoctorContext from "../../context/DoctorContext"
 
 import {
   getCurrentUser,
@@ -76,6 +77,9 @@ function DoctorLayout({ children }) {
     localStorage.removeItem("access_token")
     navigate("/doctor/login")
   }
+
+  const doctorName = [doctor?.first_name, doctor?.last_name].filter(Boolean).join(" ")
+  const displayName = doctorName ? `Dr. ${doctorName}` : user?.email || "Doctor"
 
 
   // ============================================================
@@ -183,7 +187,7 @@ function DoctorLayout({ children }) {
             <div className="hidden text-right sm:block">
 
               <p className="text-sm font-semibold text-slate-900">
-                {user?.email}
+                {displayName}
               </p>
 
               <p className="text-xs text-slate-500">
@@ -238,6 +242,10 @@ function DoctorLayout({ children }) {
               Appointments
             </NavLink>
 
+            <NavLink to="/doctor/working-hours" className={navLinkClass}>
+              Working Hours
+            </NavLink>
+
             <NavLink
               to="/doctor/leave"
               className={navLinkClass}
@@ -263,7 +271,9 @@ function DoctorLayout({ children }) {
 
         <main className="min-w-0 flex-1">
 
-          {children}
+          <DoctorContext.Provider value={{ doctor, user }}>
+            {children}
+          </DoctorContext.Provider>
 
         </main>
 

@@ -13,6 +13,7 @@ import DoctorAppointments from "../pages/doctor/appointments/DoctorAppointments"
 import DoctorLeave from "../pages/doctor/leave/DoctorLeave"
 import DoctorSettings from "../pages/doctor/settings/DoctorSettings"
 import DoctorProfile from "../pages/doctor/profile/DoctorProfile"
+import DoctorWorkingHours from "../pages/doctor/working-hours/DoctorWorkingHours"
 
 import AdminAppointments from "../pages/admin/appointments/AdminAppointments"
 import AdminDashboard from "../pages/admin/dashboard/AdminDashboard"
@@ -152,6 +153,8 @@ function AppRoutes() {
 
 
       {/* Doctor Leave */}
+      <Route path="/doctor/working-hours" element={<ProtectedRoute><RoleRoute allowedRoles={["DOCTOR"]}><DoctorWorkingHours /></RoleRoute></ProtectedRoute>} />
+
       <Route
         path="/doctor/leave"
         element={

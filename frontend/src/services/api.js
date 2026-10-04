@@ -90,6 +90,18 @@ export async function updateMyDoctorProfile(
   })
 }
 
+export async function getMyWorkingHours(token) {
+  return request("/doctors/me/working-hours", { headers: { Authorization: `Bearer ${token}` } })
+}
+
+export async function saveMyWorkingSchedule(token, days) {
+  return request("/doctors/me/working-hours/schedule", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ days }),
+  })
+}
+
 
 // ============================================================
 // ADMIN DASHBOARD
@@ -461,6 +473,15 @@ export async function updateMyPatientProfile(token, patientData) {
 
 export async function getMyPatientAppointments(token) {
   return request("/appointments/me", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function getMyDoctorAppointments(token) {
+  return request("/appointments/doctor/me", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

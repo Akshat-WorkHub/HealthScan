@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import require_role
 from app.core.database import get_db
@@ -15,6 +15,7 @@ from app.schemas.appointment import (
     AdminAppointmentResponse,
     AdminAppointmentUpdateRequest,
     PatientAppointmentResponse,
+    DoctorAppointmentResponse,
 )
 
 
@@ -22,6 +23,50 @@ router = APIRouter(
     prefix="/appointments",
     tags=["Appointments"],
 )
+
+
+@router.get(
+    "/doctor/me",
+    response_model=list[DoctorAppointmentResponse],
+    status_code=status.HTTP_200_OK,
+)
+def get_my_doctor_appointments(
+    current_user: User = Depends(require_role(UserRole.DOCTOR)),
+    db: Session = Depends(get_db),
+):
+    doctor = db.scalar(select(Doctor).where(Doctor.user_id == current_user.id))
+    if not doctor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doctor profile not found",
+        )
+
+    appointments = db.scalars(
+        select(Appointment)
+        .options(selectinload(Appointment.patient))
+        .where(Appointment.doctor_id == doctor.id)
+        .order_by(
+            Appointment.appointment_date,
+            Appointment.start_time,
+            Appointment.id,
+        )
+    ).all()
+
+    return [
+        {
+            "id": appointment.id,
+            "patient_id": appointment.patient_id,
+            "patient_name": f"{appointment.patient.first_name} {appointment.patient.last_name}".strip(),
+            "appointment_date": appointment.appointment_date,
+            "start_time": appointment.start_time,
+            "end_time": appointment.end_time,
+            "status": appointment.status,
+            "cancellation_reason": appointment.cancellation_reason,
+            "created_at": appointment.created_at,
+            "updated_at": appointment.updated_at,
+        }
+        for appointment in appointments
+    ]
 
 
 # ============================================================
@@ -360,10 +405,12 @@ def book_appointment(
         )
 
     # Ensure doctor exists and is active
+    # Serialize bookings for a doctor by locking its row. This works on MySQL
+    # and TiDB and closes the check/insert race for overlapping bookings.
     doctor = db.scalar(
         select(Doctor).where(
             Doctor.id == appointment_data.doctor_id
-        )
+        ).with_for_update()
     )
 
     if not doctor:
@@ -378,6 +425,52 @@ def book_appointment(
             detail="Doctor is not currently accepting appointments",
         )
 
+    from datetime import date, datetime, timedelta, time
+    from app.models.doctor_working_hours import DoctorWorkingHours
+    from app.models.doctor_leave import DoctorLeave
+
+    if appointment_data.appointment_date < date.today():
+        raise HTTPException(status_code=400, detail="Cannot book appointments in the past")
+
+    if appointment_data.appointment_date == date.today() and datetime.combine(
+        appointment_data.appointment_date, appointment_data.start_time
+    ) <= datetime.now():
+        raise HTTPException(status_code=400, detail="Cannot book a slot in the past")
+
+    working_hours = db.scalars(select(DoctorWorkingHours).where(
+        DoctorWorkingHours.doctor_id == doctor.id,
+        DoctorWorkingHours.day_of_week == appointment_data.appointment_date.weekday(),
+        DoctorWorkingHours.is_active.is_(True),
+    )).all()
+    duration = timedelta(minutes=doctor.slot_duration_minutes)
+    start_at = datetime.combine(appointment_data.appointment_date, appointment_data.start_time)
+    end_at = datetime.combine(appointment_data.appointment_date, appointment_data.end_time)
+    if end_at - start_at != duration:
+        raise HTTPException(status_code=400, detail="Requested time is outside the doctor's working hours")
+
+    lunch_start = time(12, 30)
+    lunch_end = time(14, 0)
+    if appointment_data.start_time < lunch_end and appointment_data.end_time > lunch_start:
+        raise HTTPException(status_code=400, detail="Appointments cannot overlap the 12:30–14:00 lunch break")
+
+    matching_interval = next((interval for interval in working_hours
+        if appointment_data.start_time >= interval.start_time
+        and appointment_data.end_time <= interval.end_time), None)
+    if not matching_interval:
+        raise HTTPException(status_code=400, detail="Requested time is outside the doctor's working hours")
+    anchor = max(matching_interval.start_time, lunch_end) if appointment_data.start_time >= lunch_end else matching_interval.start_time
+    if (start_at - datetime.combine(appointment_data.appointment_date, anchor)).total_seconds() % duration.total_seconds() != 0:
+        raise HTTPException(status_code=400, detail="Requested time is not a generated appointment slot")
+
+    leave = db.scalar(select(DoctorLeave).where(
+        DoctorLeave.doctor_id == doctor.id,
+        DoctorLeave.start_date <= appointment_data.appointment_date,
+        DoctorLeave.end_date >= appointment_data.appointment_date,
+        DoctorLeave.status == "APPROVED",
+    ))
+    if leave:
+        raise HTTPException(status_code=400, detail="Doctor is on leave for this date")
+
     # Validate time range
     if appointment_data.start_time >= appointment_data.end_time:
         raise HTTPException(
@@ -385,13 +478,14 @@ def book_appointment(
             detail="Start time must be before end time",
         )
 
-    # Check for conflicting appointment (same doctor, date, start_time, SCHEDULED)
+    # Check all interval overlaps, including legacy/non-grid appointments.
     conflict = db.scalar(
         select(Appointment).where(
             Appointment.doctor_id == appointment_data.doctor_id,
             Appointment.appointment_date == appointment_data.appointment_date,
             Appointment.status == AppointmentStatus.SCHEDULED,
-            Appointment.start_time == appointment_data.start_time,
+            Appointment.start_time < appointment_data.end_time,
+            Appointment.end_time > appointment_data.start_time,
         )
     )
 

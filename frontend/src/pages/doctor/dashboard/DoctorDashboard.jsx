@@ -1,10 +1,15 @@
+import { useContext } from "react"
 import DoctorLayout from "../DoctorLayout"
 import { NavLink } from "react-router-dom"
+import DoctorContext from "../../../context/DoctorContext"
 
 
-function DoctorDashboard() {
+function DoctorDashboardContent() {
+  const { doctor, user } = useContext(DoctorContext)
+  const fullName = [doctor?.first_name, doctor?.last_name].filter(Boolean).join(" ")
+  const displayName = fullName ? `Dr. ${fullName}` : user?.email || "Doctor"
   return (
-    <DoctorLayout>
+    <>
 
       {/* ======================================================
           PAGE HEADER
@@ -21,7 +26,7 @@ function DoctorDashboard() {
         </h2>
 
         <p className="mt-1 text-sm text-slate-500">
-          Welcome back. Manage your appointments and availability from here.
+          Welcome back, {displayName}! Manage your appointments and availability from here.
         </p>
 
       </div>
@@ -44,7 +49,7 @@ function DoctorDashboard() {
           </p>
 
           <h3 className="mt-2 text-xl font-semibold text-slate-900">
-            Welcome to your Doctor Dashboard
+            Welcome back, {displayName}!
           </h3>
 
           <p className="mt-2 text-sm text-slate-500">
@@ -132,11 +137,11 @@ function DoctorDashboard() {
             <div>
 
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Email
+                Doctor
               </p>
 
               <p className="mt-2 text-sm font-medium text-slate-900">
-                Doctor account
+                {doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : "Doctor"}
               </p>
 
             </div>
@@ -177,9 +182,16 @@ function DoctorDashboard() {
 
       </div>
 
-    </DoctorLayout>
+    </>
   )
 }
 
+function DoctorDashboard() {
+  return (
+    <DoctorLayout>
+      <DoctorDashboardContent />
+    </DoctorLayout>
+  )
+}
 
 export default DoctorDashboard

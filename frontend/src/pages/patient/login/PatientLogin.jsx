@@ -9,7 +9,6 @@ function PatientLogin() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -49,21 +48,9 @@ function PatientLogin() {
             to="/"
             className="text-xl font-bold tracking-tight text-slate-900"
           >
-            SmartHealth<span className="text-blue-600"> AI</span>
+            HealthScan<span className="text-blue-600"> AI</span>
           </Link>
 
-          <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-slate-500 sm:block">
-              Need help?
-            </span>
-
-            <button
-              type="button"
-              className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
-            >
-              Contact Support
-            </button>
-          </div>
 
         </div>
       </header>
@@ -175,12 +162,6 @@ function PatientLogin() {
                     Password
                   </label>
 
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                  >
-                    Forgot password?
-                  </button>
 
                 </div>
 
@@ -286,28 +267,6 @@ function PatientLogin() {
                   </button>
 
                 </div>
-              </div>
-
-              {/* Remember Me */}
-              <div className="flex items-center">
-
-                <label className="flex cursor-pointer items-center gap-2">
-
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(event) =>
-                      setRememberMe(event.target.checked)
-                    }
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-
-                  <span className="text-sm text-slate-600">
-                    Remember me
-                  </span>
-
-                </label>
-
               </div>
 
               {/* Error */}

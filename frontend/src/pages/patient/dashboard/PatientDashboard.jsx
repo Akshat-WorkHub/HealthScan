@@ -492,7 +492,7 @@ function PatientDashboard() {
             </p>
 
             <span className="mt-4 inline-flex items-center text-xs font-semibold text-blue-600">
-              Booking Engine (Next Module) →
+              Book an Appointment →
             </span>
           </button>
 
