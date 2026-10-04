@@ -88,10 +88,10 @@ function DoctorLayout({ children }) {
 
   function navLinkClass({ isActive }) {
     return `
-      block rounded-lg px-4 py-3 text-sm transition
+      portal-nav-link block rounded-lg px-4 py-3 text-sm transition
       ${
         isActive
-          ? "bg-blue-50 font-semibold text-blue-700"
+          ? "font-semibold"
           : "font-medium text-slate-600 hover:bg-slate-50"
       }
     `
@@ -104,7 +104,7 @@ function DoctorLayout({ children }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="portal-shell portal-doctor flex min-h-screen items-center justify-center">
 
         <div className="text-sm text-slate-500">
           Loading doctor dashboard...
@@ -121,7 +121,7 @@ function DoctorLayout({ children }) {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+      <div className="portal-shell portal-doctor flex min-h-screen items-center justify-center px-6">
 
         <div className="w-full max-w-md rounded-xl border border-red-200 bg-white p-6 text-center shadow-sm">
 
@@ -149,13 +149,13 @@ function DoctorLayout({ children }) {
 
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="portal-shell portal-doctor min-h-screen">
 
       {/* ======================================================
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-slate-200 bg-white">
+      <header className="portal-header border-b border-slate-200 bg-white">
 
         <div className="flex h-16 items-center justify-between px-6 lg:px-10">
 
@@ -224,7 +224,7 @@ function DoctorLayout({ children }) {
             SIDEBAR
         ==================================================== */}
 
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
+        <aside className="portal-sidebar hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
 
           <nav className="space-y-1 p-4">
 

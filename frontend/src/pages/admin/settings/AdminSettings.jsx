@@ -90,13 +90,13 @@ function AdminSettings() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="portal-shell portal-admin min-h-screen">
 
       {/* ======================================================
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-slate-200 bg-white">
+      <header className="portal-header border-b border-slate-200 bg-white">
 
         <div className="flex h-16 items-center justify-between px-6 lg:px-10">
 
@@ -178,7 +178,7 @@ function AdminSettings() {
         ==================================================== */}
 
         {/* Sidebar */}
-        <aside className="hidden min-h-[calc(100vh-64px)] w-64 border-r border-slate-200 bg-white lg:block">
+        <aside className="portal-sidebar hidden min-h-[calc(100vh-64px)] w-64 border-r border-slate-200 bg-white lg:block">
           <nav className="space-y-1 p-4">
 
             <NavLink

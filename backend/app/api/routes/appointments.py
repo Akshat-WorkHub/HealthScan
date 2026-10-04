@@ -1,3 +1,6 @@
+import json
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -7,6 +10,8 @@ from app.core.database import get_db
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.doctor import Doctor
 from app.models.patient import Patient
+from app.models.pre_visit_information import PreVisitInformation
+from app.models.pre_visit_summary import PreVisitSummary, UrgencyLevel
 from app.models.user import User
 from app.schemas.auth import UserRole
 from app.schemas.appointment import (
@@ -17,12 +22,182 @@ from app.schemas.appointment import (
     PatientAppointmentResponse,
     DoctorAppointmentResponse,
 )
+from app.schemas.pre_visit import (
+    PreVisitInformationRequest,
+    PreVisitInformationResponse,
+    PreVisitSummaryResponse,
+)
+from app.services.ai_service import AIService, AIServiceError
 
 
 router = APIRouter(
     prefix="/appointments",
     tags=["Appointments"],
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _get_patient_appointment(db: Session, current_user: User, appointment_id: int):
+    patient = db.scalar(select(Patient).where(Patient.user_id == current_user.id))
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+
+    appointment = db.scalar(select(Appointment).where(
+        Appointment.id == appointment_id,
+        Appointment.patient_id == patient.id,
+    ))
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return appointment
+
+
+def _serialize_pre_visit_summary(summary: PreVisitSummary) -> dict:
+    try:
+        questions = json.loads(summary.suggested_questions)
+    except (TypeError, json.JSONDecodeError):
+        logger.error("Stored pre-visit summary %s has invalid question data", summary.id)
+        raise HTTPException(status_code=500, detail="Stored pre-visit summary is invalid") from None
+
+    return {
+        "id": summary.id,
+        "urgency_level": summary.urgency_level,
+        "chief_complaint": summary.chief_complaint,
+        "suggested_questions": questions,
+        "created_at": summary.created_at,
+        "updated_at": summary.updated_at,
+    }
+
+
+def _serialize_pre_visit_information(info: PreVisitInformation) -> dict:
+    return {
+        "id": info.id,
+        "appointment_id": info.appointment_id,
+        "symptoms": info.symptoms,
+        "additional_notes": info.additional_notes,
+        "summary": _serialize_pre_visit_summary(info.summary) if info.summary else None,
+        "created_at": info.created_at,
+        "updated_at": info.updated_at,
+    }
+
+
+@router.get(
+    "/me/{appointment_id}/pre-visit",
+    response_model=PreVisitInformationResponse | None,
+    status_code=status.HTTP_200_OK,
+)
+def get_my_pre_visit_information(
+    appointment_id: int,
+    current_user: User = Depends(require_role(UserRole.PATIENT)),
+    db: Session = Depends(get_db),
+):
+    appointment = _get_patient_appointment(db, current_user, appointment_id)
+    info = db.scalar(select(PreVisitInformation)
+        .options(selectinload(PreVisitInformation.summary))
+        .where(PreVisitInformation.appointment_id == appointment.id))
+    return _serialize_pre_visit_information(info) if info else None
+
+
+@router.put(
+    "/me/{appointment_id}/pre-visit",
+    response_model=PreVisitInformationResponse,
+    status_code=status.HTTP_200_OK,
+)
+def save_my_pre_visit_information(
+    appointment_id: int,
+    data: PreVisitInformationRequest,
+    current_user: User = Depends(require_role(UserRole.PATIENT)),
+    db: Session = Depends(get_db),
+):
+    appointment = _get_patient_appointment(db, current_user, appointment_id)
+    info = db.scalar(select(PreVisitInformation)
+        .options(selectinload(PreVisitInformation.summary))
+        .where(PreVisitInformation.appointment_id == appointment.id))
+
+    if info:
+        changed = (
+            info.symptoms != data.symptoms
+            or info.additional_notes != data.additional_notes
+        )
+        if changed and info.summary:
+            db.delete(info.summary)
+        info.symptoms = data.symptoms
+        info.additional_notes = data.additional_notes
+    else:
+        info = PreVisitInformation(
+            appointment_id=appointment.id,
+            symptoms=data.symptoms,
+            additional_notes=data.additional_notes,
+        )
+        db.add(info)
+
+    db.commit()
+    info = db.scalar(select(PreVisitInformation)
+        .options(selectinload(PreVisitInformation.summary))
+        .where(PreVisitInformation.appointment_id == appointment.id))
+    return _serialize_pre_visit_information(info)
+
+
+@router.post(
+    "/me/{appointment_id}/pre-visit/summary",
+    response_model=PreVisitSummaryResponse,
+    status_code=status.HTTP_200_OK,
+)
+def generate_my_pre_visit_summary(
+    appointment_id: int,
+    current_user: User = Depends(require_role(UserRole.PATIENT)),
+    db: Session = Depends(get_db),
+):
+    appointment = _get_patient_appointment(db, current_user, appointment_id)
+    info = db.scalar(select(PreVisitInformation)
+        .options(selectinload(PreVisitInformation.summary))
+        .where(PreVisitInformation.appointment_id == appointment.id))
+    if not info:
+        raise HTTPException(status_code=404, detail="Save your pre-visit information before generating a summary")
+    if len(info.symptoms.strip()) < 5:
+        raise HTTPException(status_code=422, detail="Please provide more detail about your symptoms")
+
+    try:
+        generated = AIService().generate_pre_visit_summary(
+            symptoms=info.symptoms,
+            additional_notes=info.additional_notes,
+        )
+    except AIServiceError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="We couldn't generate your AI summary right now. Your information was saved. Please try again later.",
+        ) from None
+
+    saved_info = db.scalar(
+        select(PreVisitInformation)
+        .options(selectinload(PreVisitInformation.summary))
+        .where(PreVisitInformation.id == info.id)
+        .with_for_update()
+    )
+    if not saved_info:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Pre-visit information was removed")
+    if (
+        saved_info.symptoms != info.symptoms
+        or saved_info.additional_notes != info.additional_notes
+    ):
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Pre-visit information changed. Please retry summary generation.",
+        )
+
+    summary = saved_info.summary
+    if summary is None:
+        summary = PreVisitSummary(pre_visit_information_id=saved_info.id)
+        db.add(summary)
+    summary.urgency_level = UrgencyLevel(generated.urgency_level)
+    summary.chief_complaint = generated.chief_complaint
+    summary.suggested_questions = json.dumps(generated.suggested_questions, ensure_ascii=False)
+    db.commit()
+    db.refresh(summary)
+    return _serialize_pre_visit_summary(summary)
 
 
 @router.get(
@@ -43,7 +218,11 @@ def get_my_doctor_appointments(
 
     appointments = db.scalars(
         select(Appointment)
-        .options(selectinload(Appointment.patient))
+        .options(
+            selectinload(Appointment.patient),
+            selectinload(Appointment.pre_visit_information)
+            .selectinload(PreVisitInformation.summary),
+        )
         .where(Appointment.doctor_id == doctor.id)
         .order_by(
             Appointment.appointment_date,
@@ -57,6 +236,11 @@ def get_my_doctor_appointments(
             "id": appointment.id,
             "patient_id": appointment.patient_id,
             "patient_name": f"{appointment.patient.first_name} {appointment.patient.last_name}".strip(),
+            "pre_visit_information": (
+                _serialize_pre_visit_information(appointment.pre_visit_information)
+                if appointment.pre_visit_information
+                else None
+            ),
             "appointment_date": appointment.appointment_date,
             "start_time": appointment.start_time,
             "end_time": appointment.end_time,

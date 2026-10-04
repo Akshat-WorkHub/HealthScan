@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
 
+    google_api_key: str | None = None
+    google_model: str = "gemini-3.7-flash"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

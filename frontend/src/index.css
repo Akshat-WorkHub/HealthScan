@@ -1,2 +1,117 @@
 @import "tailwindcss";
 
+.portal-shell {
+  --portal-primary: #1d4ed8;
+  --portal-primary-hover: #1e40af;
+  --portal-primary-strong: #1e40af;
+  --portal-page: #f5f9fc;
+  --portal-surface: #ffffff;
+  --portal-sidebar-surface: #f7fbfd;
+  --portal-border: #dbe5ec;
+  --portal-accent-surface: #ecfeff;
+  --portal-accent-border: #a5f3fc;
+  --portal-glow: rgb(20 184 166 / 10%);
+  min-height: 100vh;
+  background-color: var(--portal-page);
+  background-image: radial-gradient(ellipse at 92% 0%, var(--portal-glow), transparent 38%);
+  background-attachment: fixed;
+}
+
+.portal-patient {
+  --portal-page: #f4f9fc;
+  --portal-sidebar-surface: #f0f8fa;
+  --portal-border: #d9e8ee;
+  --portal-accent-surface: #ecfeff;
+  --portal-accent-border: #a5f3fc;
+  --portal-glow: rgb(20 184 166 / 10%);
+}
+
+.portal-doctor {
+  --portal-primary: #047857;
+  --portal-primary-hover: #065f46;
+  --portal-primary-strong: #065f46;
+  --portal-page: #f4faf6;
+  --portal-sidebar-surface: #eff8f2;
+  --portal-border: #d9e9dd;
+  --portal-accent-surface: #ecfdf5;
+  --portal-accent-border: #a7f3d0;
+  --portal-glow: rgb(16 185 129 / 9%);
+}
+
+.portal-admin {
+  --portal-primary: #4338ca;
+  --portal-primary-hover: #3730a3;
+  --portal-primary-strong: #3730a3;
+  --portal-page: #f5f6fb;
+  --portal-sidebar-surface: #1e293b;
+  --portal-border: #dfe2ef;
+  --portal-accent-surface: #eef2ff;
+  --portal-accent-border: #c7d2fe;
+  --portal-glow: rgb(99 102 241 / 8%);
+}
+
+.portal-shell .portal-header,
+.portal-shell .portal-page-heading {
+  background-color: var(--portal-surface);
+  border-color: var(--portal-border);
+}
+
+.portal-shell .portal-sidebar {
+  background-color: var(--portal-sidebar-surface);
+  border-color: var(--portal-border);
+}
+
+.portal-shell .portal-eyebrow,
+.portal-shell .portal-link {
+  color: var(--portal-primary);
+}
+
+.portal-shell .portal-sidebar a[aria-current="page"] {
+  color: var(--portal-primary-strong);
+  background-color: var(--portal-accent-surface);
+  box-shadow: inset 3px 0 0 var(--portal-primary);
+}
+
+.portal-admin .portal-sidebar a:not([aria-current="page"]) {
+  color: #cbd5e1;
+}
+
+.portal-admin .portal-sidebar a:not([aria-current="page"]):hover {
+  background-color: rgb(255 255 255 / 8%);
+  color: #ffffff;
+}
+
+.portal-shell [class~="bg-blue-600"] {
+  background-color: var(--portal-primary);
+}
+
+.portal-shell [class~="hover:bg-blue-700"]:hover {
+  background-color: var(--portal-primary-hover);
+}
+
+.portal-shell [class~="text-blue-600"],
+.portal-shell [class~="text-blue-700"] {
+  color: var(--portal-primary-strong);
+}
+
+.portal-shell [class~="bg-blue-50"] {
+  background-color: var(--portal-accent-surface);
+}
+
+.portal-shell [class~="border-blue-100"],
+.portal-shell [class~="border-blue-200"] {
+  border-color: var(--portal-accent-border);
+}
+
+.portal-shell [class~="hover:border-blue-200"]:hover {
+  border-color: var(--portal-accent-border);
+}
+
+.portal-action-card {
+  background: linear-gradient(145deg, var(--portal-accent-surface), #ffffff 75%);
+}
+
+.portal-empty-icon {
+  background-color: var(--portal-accent-surface);
+  color: var(--portal-primary-strong);
+}

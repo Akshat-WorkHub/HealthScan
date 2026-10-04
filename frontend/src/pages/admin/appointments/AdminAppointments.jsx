@@ -197,14 +197,14 @@ function AdminAppointments() {
   // ============================================================
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="portal-shell portal-admin flex min-h-screen">
 
       {/* ======================================================
           SIDEBAR
       ====================================================== */}
 
       {/* Sidebar */}
-      <aside className="hidden min-h-[calc(100vh-64px)] w-64 border-r border-slate-200 bg-white lg:block">
+      <aside className="portal-sidebar hidden min-h-[calc(100vh-64px)] w-64 border-r border-slate-200 bg-white lg:block">
         <nav className="space-y-1 p-4">
 
           <NavLink
@@ -296,7 +296,7 @@ function AdminAppointments() {
 
         {/* Header */}
 
-        <header className="border-b border-slate-200 bg-white px-8 py-5">
+        <header className="portal-page-heading border-b border-slate-200 bg-white px-8 py-5">
 
           <div className="flex items-center justify-between">
 

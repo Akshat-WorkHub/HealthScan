@@ -37,7 +37,7 @@ function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="portal-shell portal-admin min-h-screen">
 
       {/* Header */}
       <header className="h-[68px] border-b border-slate-200 bg-white">

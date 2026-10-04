@@ -480,6 +480,27 @@ export async function getMyPatientAppointments(token) {
   })
 }
 
+export async function getMyPreVisitInformation(token, appointmentId) {
+  return request(`/appointments/me/${appointmentId}/pre-visit`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export async function saveMyPreVisitInformation(token, appointmentId, data) {
+  return request(`/appointments/me/${appointmentId}/pre-visit`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function generateMyPreVisitSummary(token, appointmentId) {
+  return request(`/appointments/me/${appointmentId}/pre-visit/summary`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
 export async function getMyDoctorAppointments(token) {
   return request("/appointments/doctor/me", {
     method: "GET",
